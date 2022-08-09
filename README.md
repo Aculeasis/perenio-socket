@@ -11,6 +11,8 @@ Replacement the module WR2 with esp8285
 Стало:
 ![photo_5399890071924096236_y](https://user-images.githubusercontent.com/64173457/180664547-dda255e4-87c4-4a99-aaee-682d2f316b51.jpg)
 
+https://zry.io/archives/783
+
 Код прошивки:
 ```
 substitutions:
@@ -59,7 +61,7 @@ status_led:
 output:
   - platform: esp8266_pwm
     id: led
-    pin: GPIO1
+    pin: GPIO01
     inverted: True 
 
 light:
