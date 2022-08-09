@@ -40,12 +40,13 @@ wifi:
   networks:
   - ssid: !secret wifi1
     password: !secret password1
-
 web_server:
   port: 80
+
 button:
   - platform: restart
-    name: Reset.$board_name
+    id: restart_button
+    name: "${board_name} Restart"
 
 status_led:
   pin:
