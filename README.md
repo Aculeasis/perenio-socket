@@ -1,5 +1,8 @@
-# perenio-socket
+# A9TY-V1.3DL
 Replacement the module WR2 with esp8285
+
+A sort of https://github.com/ianchi/athom-configs/blob/patch-1/athom-smart-plug.yaml
+and of https://zry.io/archives/783
 
 Замена tuya модуля wr2 в розетке Perenio на esp-02s(esp8285) 
 
@@ -11,7 +14,6 @@ Replacement the module WR2 with esp8285
 Стало:
 ![photo_5399890071924096236_y](https://user-images.githubusercontent.com/64173457/180664547-dda255e4-87c4-4a99-aaee-682d2f316b51.jpg)
 
-https://zry.io/archives/783
 
 Код прошивки:
 ```
@@ -22,14 +24,6 @@ esphome:
   name: $board_name
   platform: ESP8266
   board: esp01_1m
-
-  on_boot:
-    - priority: -200.0
-      then:
-        - light.turn_on:
-            id: led_$board_name
-            brightness: 100%
-            effect: Pulse
 
 # disable logging
 logger:
@@ -58,47 +52,24 @@ status_led:
     number: GPIO13
     inverted: true
 
-output:
-  - platform: esp8266_pwm
-    id: led
-    pin: GPIO01
-    inverted: True 
-
-light:
-  - platform: monochromatic
-    name: LED_$board_name
-    output: led
-    internal: true
-    default_transition_length: 2s
-    id: led_$board_name
-    effects:
-      - pulse:
-          name: Pulse
-
 binary_sensor:
   - platform: gpio
     pin:
-      number: GPIO03 # кнопка
+      number: GPIO03
       mode: INPUT_PULLUP
       inverted: true
-    name: key_$board_name
+    name: "${board_name} Power Button"
     internal: true
-    on_press:
-      - switch.toggle: relay
-
-  - platform: status
-    name: Status.$board_name
-    id: status_id
-    internal: true
-    on_release:
-      then:
-        - light.turn_on:
-            id: led_$board_name
-            brightness: 100%
-            effect: Pulse
-    on_press:
-      then:
-        - light.turn_off: led_$board_name
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.toggle: relay
+      - timing:
+          - ON for at least 5s
+        then:
+          - button.press: restart_button
 
 switch:
   - platform: gpio
@@ -106,11 +77,6 @@ switch:
     pin: GPIO14
     id: relay
     restore_mode: RESTORE_DEFAULT_OFF
-    on_turn_on:
-    - light.turn_on: led_$board_name
-    on_turn_off:
-    - light.turn_off: led_$board_name
-
 
 sensor:
   - platform: wifi_signal
