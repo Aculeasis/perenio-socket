@@ -51,10 +51,15 @@ button:
   - platform: restart
     name: Reset.$board_name
 
+status_led:
+  pin:
+    number: GPIO13
+    inverted: true
+
 output:
   - platform: esp8266_pwm
     id: led
-    pin: GPIO01
+    pin: GPIO1
     inverted: True 
 
 light:
@@ -96,9 +101,9 @@ binary_sensor:
 switch:
   - platform: gpio
     name: relay_$board_name
-    pin: GPIO04
+    pin: GPIO14
     id: relay
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
     - light.turn_on: led_$board_name
     on_turn_off:
@@ -107,42 +112,66 @@ switch:
 
 sensor:
   - platform: wifi_signal
-    name: WiFi_Signal.$board_name
+    name: "WiFi Signal"
+    id: rssi
+    update_interval: 120s
   - platform: uptime
-    name: Uptime_Sensor_$board_name
-    id: uptime_sensor
-
+    name: "Uptime Raw"
+    id: device_uptime
+    update_interval: 120s
+    on_raw_value:
+      then:
+        - text_sensor.template.publish:
+            id: uptime_human
+            state: !lambda |-
+              int seconds = round(id(device_uptime).raw_state);
+              int days = seconds / (24 * 3600);
+              seconds = seconds % (24 * 3600);
+              int hours = seconds / 3600;
+              seconds = seconds % 3600;
+              int minutes = seconds /  60;
+              seconds = seconds % 60;
+              return (
+                (days ? to_string(days) + "d " : "") +
+                (hours ? to_string(hours) + "h " : "") +
+                (minutes ? to_string(minutes) + "m " : "") +
+                (to_string(seconds) + "s")
+              ).c_str();
   - platform: hlw8012
     sel_pin: 
-      number: GPIO14
+      number: GPIO12
       inverted: True
-    cf_pin: GPIO13
+    cf_pin: GPIO04
     cf1_pin: GPIO05
     current:
       name: Current_$board_name
-      filters:
-       - multiply: 1.0
     voltage:
       name: Voltage_$board_name
+      accuracy_decimals: 0
+      filters:
+        - median:
     power:
       name: Power_$board_name
+      # unit_of_measurement: W
+      accuracy_decimals: 0
     energy:
       name: Energy_$board_name
-    update_interval: 5s
-    voltage_divider: 1700 #1710 #1760
-    current_resistor: 0.001 #0.00095
+      filters:
+        - multiply: 0.001
+      unit_of_measurement: 'kWh'
+      device_class: energy
+      state_class: total_increasing
+      accuracy_decimals: 2
+    update_interval: 20s
+    voltage_divider: 2043
     change_mode_every: 3
     model: BL0937
 
 
 text_sensor:
-  - platform: wifi_info
-    ip_address:
-      name: ESP IP Address.$board_name
-    ssid:
-      name: ESP Connected SSID.$board_name
-    bssid:
-      name: ESP Connected BSSID.$board_name
-    mac_address:
-      name: ESP Mac Wifi Address.$board_name
+  - platform: template
+    name: "Uptime"
+    id: uptime_human
+    icon: mdi:clock-start
+    entity_category: diagnostic
 ```
