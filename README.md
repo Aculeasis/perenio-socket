@@ -16,42 +16,39 @@ and of https://zry.io/archives/783
 
 
 Код прошивки:
-```
+```yaml
 substitutions:
-  board_name: "socket"
-
+  name: "socket"
 esphome:
-  name: $board_name
-  platform: ESP8266
-  board: esp01_1m
-
-# disable logging
+  name: "${name}"
+esp8266:
+  board: esp8285
 logger:
   baud_rate: 0
-
 api:
-  password: !secret passwordapi
-
+  password: !secret api_password
 ota:
-  password: !secret passwordota
-
-
+  password: !secret api_password
 wifi:
   networks:
-  - ssid: !secret wifi1
-    password: !secret password1
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+  - ssid: !secret wifi_ssid2
+    password: !secret wifi_password2
+  ap:
+    ssid: "${name} Fallback Hotspot"
+    password: !secret ap_password
+captive_portal:
 web_server:
   port: 80
 
-button:
-  - platform: restart
-    id: restart_button
-    name: "${board_name} Restart"
 
-status_led:
-  pin:
-    number: GPIO13
-    inverted: true
+switch:
+  - platform: gpio
+    pin: GPIO14
+    name: "${name} Switch"
+    id: relay
+    restore_mode: RESTORE_DEFAULT_OFF
 
 binary_sensor:
   - platform: gpio
@@ -59,7 +56,7 @@ binary_sensor:
       number: GPIO03
       mode: INPUT_PULLUP
       inverted: true
-    name: "${board_name} Power Button"
+    name: "${name} Power Button"
     internal: true
     on_multi_click:
       - timing:
@@ -72,20 +69,23 @@ binary_sensor:
         then:
           - button.press: restart_button
 
-switch:
-  - platform: gpio
-    name: relay_$board_name
-    pin: GPIO14
-    id: relay
-    restore_mode: RESTORE_DEFAULT_OFF
+button:
+  - platform: restart
+    id: restart_button
+    name: "${name} Restart"
 
+status_led:
+  pin:
+    number: GPIO13
+    inverted: true
+    
 sensor:
   - platform: wifi_signal
-    name: "WiFi Signal"
+    name: "${name} WiFi Signal"
     id: rssi
     update_interval: 120s
   - platform: uptime
-    name: "Uptime Raw"
+    name: "${name} Uptime UTC"
     id: device_uptime
     update_interval: 120s
     on_raw_value:
@@ -106,40 +106,44 @@ sensor:
                 (minutes ? to_string(minutes) + "m " : "") +
                 (to_string(seconds) + "s")
               ).c_str();
+    
   - platform: hlw8012
-    sel_pin: 
+    sel_pin:
       number: GPIO12
       inverted: True
-    cf_pin: GPIO04
-    cf1_pin: GPIO05
+    cf_pin: GPIO4
+    cf1_pin: GPIO5
+    # 1382 om\ 1998000 \\ 1446?
+    # 994 om\ 1990000 \\ 2003?
+    # 1725? 1600?
+    voltage_divider: 2043
+    model: BL0937
     current:
-      name: Current_$board_name
+      name: "${name} Current"
     voltage:
-      name: Voltage_$board_name
+      name: "${name} Voltage"
       accuracy_decimals: 0
       filters:
         - median:
     power:
-      name: Power_$board_name
-      # unit_of_measurement: W
+      name: "${name} Power"
+      id: socket_my_power
+      unit_of_measurement: W
       accuracy_decimals: 0
     energy:
-      name: Energy_$board_name
-      filters:
-        - multiply: 0.001
+      name: "${name} Total Energy"
       unit_of_measurement: 'kWh'
       device_class: energy
       state_class: total_increasing
       accuracy_decimals: 2
-    update_interval: 20s
-    voltage_divider: 2043
+      filters:
+        - multiply: 0.001
     change_mode_every: 3
-    model: BL0937
-
+    update_interval: 5s
 
 text_sensor:
   - platform: template
-    name: "Uptime"
+    name: "${name} Uptime"
     id: uptime_human
     icon: mdi:clock-start
     entity_category: diagnostic
